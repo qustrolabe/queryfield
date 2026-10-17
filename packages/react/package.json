@@ -1,6 +1,6 @@
 {
   "name": "@queryfield/react",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "React binding for @queryfield/core: a headless hook plus a search-field component.",
   "type": "module",
   "license": "MIT",

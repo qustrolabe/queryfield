@@ -6,7 +6,8 @@
   "scripts": {
     "test": "bun test packages",
     "compile": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/react && tsc --noEmit -p examples/playground",
-    "dev": "cd examples/playground && vite"
+    "dev": "cd examples/playground && vite",
+    "release": "bun scripts/release.mjs"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",

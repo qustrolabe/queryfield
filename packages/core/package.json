@@ -1,6 +1,6 @@
 {
   "name": "@queryfield/core",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Framework-free filter-query language: parser, matcher, and suggestion engine.",
   "type": "module",
   "license": "MIT",
