@@ -1,0 +1,16 @@
+{
+  "name": "queryfield",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "examples/*"],
+  "scripts": {
+    "test": "bun test packages",
+    "compile": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/react && tsc --noEmit -p examples/playground",
+    "dev": "cd examples/playground && vite"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "typescript": "^5.9.3"
+  }
+}

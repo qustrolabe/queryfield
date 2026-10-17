@@ -1,0 +1,34 @@
+{
+  "name": "@queryfield/core",
+  "version": "0.0.0",
+  "description": "Framework-free filter-query language: parser, matcher, and suggestion engine.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./parser": "./src/parser.ts",
+    "./registry": "./src/registry.ts",
+    "./engine": "./src/engine.ts",
+    "./suggest": "./src/suggest.ts",
+    "./editing": "./src/editing.ts",
+    "./apply": "./src/apply.ts",
+    "./highlight": "./src/highlight.ts",
+    "./glob": "./src/glob.ts",
+    "./bounds": "./src/bounds.ts",
+    "./folders": "./src/folders.ts",
+    "./tags": "./src/tags.ts",
+    "./types": "./src/types.ts"
+  },
+  "files": ["src", "dist", "README.md"],
+  "scripts": {
+    "test": "bun test tests",
+    "compile": "tsc --noEmit"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

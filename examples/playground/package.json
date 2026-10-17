@@ -1,0 +1,26 @@
+{
+  "name": "@queryfield/playground",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Runnable demo for @queryfield/react over mock (non-bookmark) data.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@queryfield/core": "workspace:*",
+    "@queryfield/react": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.2",
+    "tailwindcss": "^4.1.0",
+    "vite": "^7.1.4"
+  }
+}

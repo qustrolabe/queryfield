@@ -1,0 +1,208 @@
+@import "tailwindcss";
+
+/*
+ * The component's defaults are Tailwind utilities that live *outside* this Vite
+ * root (`queryfield/packages/react/src`), and Tailwind v4 only auto-detects
+ * sources under the project root. Without this line none of them are generated:
+ * the suggestion list loses `absolute top-full` (so it flows inline and reflows
+ * the layout), the highlight mirror loses `absolute inset-0` (so it renders as
+ * a second copy of the text beside the input), and the token capsules lose
+ * their colours.
+ */
+@source "../../../packages/react/src";
+
+/*
+ * Playground theme.
+ *
+ * `@queryfield/react`'s defaults are Tailwind utilities over `--token-*` CSS
+ * variables. This file is the minimum needed to make those defaults render:
+ * map the raw variables into Tailwind's colour namespace, then give them
+ * light/dark values. The extension's real `assets/global.css` is the same
+ * pattern with more themes (and more base colours).
+ */
+
+@custom-variant dark (&:is(.dark, .dark *));
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-token-tag: var(--token-tag);
+  --color-token-tag-fill: var(--token-tag-fill);
+  --color-token-tag-pill: var(--token-tag-pill);
+  --color-token-url: var(--token-url);
+  --color-token-url-fill: var(--token-url-fill);
+  --color-token-url-pill: var(--token-url-pill);
+  --color-token-title: var(--token-title);
+  --color-token-title-fill: var(--token-title-fill);
+  --color-token-title-pill: var(--token-title-pill);
+  --color-token-folder: var(--token-folder);
+  --color-token-folder-fill: var(--token-folder-fill);
+  --color-token-folder-pill: var(--token-folder-pill);
+  --color-token-folder-strict: var(--token-folder-strict);
+  --color-token-folder-strict-fill: var(--token-folder-strict-fill);
+  --color-token-folder-strict-pill: var(--token-folder-strict-pill);
+  --color-token-date: var(--token-date);
+  --color-token-date-fill: var(--token-date-fill);
+  --color-token-date-pill: var(--token-date-pill);
+  --color-token-tracking: var(--token-tracking);
+  --color-token-tracking-fill: var(--token-tracking-fill);
+  --color-token-tracking-pill: var(--token-tracking-pill);
+  --color-token-id: var(--token-id);
+  --color-token-id-fill: var(--token-id-fill);
+  --color-token-id-pill: var(--token-id-pill);
+  --color-token-action: var(--token-action);
+  --color-token-action-pill: var(--token-action-pill);
+  --color-token-invert: var(--token-invert);
+  --color-token-invert-fg: var(--token-invert-fg);
+  --color-token-remove: var(--token-remove);
+  --color-token-remove-fg: var(--token-remove-fg);
+  --color-token-selection: var(--token-selection);
+
+  --radius-DEFAULT: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  color-scheme: light;
+
+  --background: oklch(97% 0 0);
+  --foreground: oklch(15% 0 0);
+
+  --popover: oklch(100% 0 0);
+  --popover-foreground: oklch(15% 0 0);
+
+  --muted: oklch(94% 0 0);
+  --muted-foreground: oklch(48% 0 0);
+
+  --border: oklch(88% 0 0);
+  --input: oklch(91% 0 0);
+  --ring: oklch(60% 0.15 270);
+
+  --radius: 0.5rem;
+
+  --token-tag: oklch(52.7% 0.154 150.069);
+  --token-tag-fill: oklch(72.3% 0.219 149.579);
+  --token-tag-pill: oklch(96.2% 0.044 156.743);
+
+  --token-url: oklch(55.3% 0.195 38.402);
+  --token-url-fill: oklch(70.5% 0.213 47.604);
+  --token-url-pill: oklch(95.4% 0.038 75.164);
+
+  --token-title: oklch(49.6% 0.265 301.924);
+  --token-title-fill: oklch(62.7% 0.265 303.9);
+  --token-title-pill: oklch(94.6% 0.033 307.174);
+
+  --token-folder: oklch(48.8% 0.243 264.376);
+  --token-folder-fill: oklch(62.3% 0.214 259.815);
+  --token-folder-pill: oklch(93.2% 0.032 255.585);
+
+  --token-folder-strict: oklch(51.1% 0.096 186.391);
+  --token-folder-strict-fill: oklch(70.4% 0.14 182.503);
+  --token-folder-strict-pill: oklch(95.3% 0.051 180.801);
+
+  --token-date: oklch(55.5% 0.163 48.998);
+  --token-date-fill: oklch(76.9% 0.188 70.08);
+  --token-date-pill: oklch(96.2% 0.059 95.617);
+
+  --token-tracking: oklch(53.2% 0.157 131.589);
+  --token-tracking-fill: oklch(76.8% 0.233 130.85);
+  --token-tracking-pill: oklch(96.7% 0.067 122.328);
+
+  --token-id: oklch(52.5% 0.223 3.958);
+  --token-id-fill: oklch(65.6% 0.241 354.308);
+  --token-id-pill: oklch(94.8% 0.028 342.258);
+
+  --token-action: oklch(26.9% 0 none);
+  --token-action-pill: oklch(92.2% 0 none);
+
+  --token-invert: oklch(97.3% 0.071 103.193);
+  --token-invert-fg: oklch(55.5% 0.163 48.998);
+
+  --token-remove: oklch(93.6% 0.032 17.717);
+  --token-remove-fg: oklch(39.6% 0.141 25.723);
+
+  --token-selection: oklch(62.3% 0.214 259.815 / 0.3);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(12% 0 0);
+  --foreground: oklch(93% 0 0);
+
+  --popover: oklch(20% 0 0);
+  --popover-foreground: oklch(93% 0 0);
+
+  --muted: oklch(22% 0 0);
+  --muted-foreground: oklch(68% 0 0);
+
+  --border: oklch(30% 0 0);
+  --input: oklch(24% 0 0);
+  --ring: oklch(50% 0.15 270);
+
+  --token-tag: oklch(87.1% 0.15 154.449);
+  --token-tag-fill: oklch(72.3% 0.219 149.579);
+  --token-tag-pill: oklch(39.3% 0.095 152.535);
+
+  --token-url: oklch(83.7% 0.128 66.29);
+  --token-url-fill: oklch(70.5% 0.213 47.604);
+  --token-url-pill: oklch(40.8% 0.123 38.172);
+
+  --token-title: oklch(82.7% 0.119 306.383);
+  --token-title-fill: oklch(62.7% 0.265 303.9);
+  --token-title-pill: oklch(38.1% 0.176 304.987);
+
+  --token-folder: oklch(80.9% 0.105 251.813);
+  --token-folder-fill: oklch(62.3% 0.214 259.815);
+  --token-folder-pill: oklch(37.9% 0.146 265.522);
+
+  --token-folder-strict: oklch(85.5% 0.138 181.071);
+  --token-folder-strict-fill: oklch(70.4% 0.14 182.503);
+  --token-folder-strict-pill: oklch(38.6% 0.063 188.416);
+
+  --token-date: oklch(87.9% 0.169 91.605);
+  --token-date-fill: oklch(76.9% 0.188 70.08);
+  --token-date-pill: oklch(41.4% 0.112 45.904);
+
+  --token-tracking: oklch(89.7% 0.196 126.665);
+  --token-tracking-fill: oklch(76.8% 0.233 130.85);
+  --token-tracking-pill: oklch(40.5% 0.101 131.063);
+
+  --token-id: oklch(82.3% 0.12 346.018);
+  --token-id-fill: oklch(65.6% 0.241 354.308);
+  --token-id-pill: oklch(40.8% 0.153 2.432);
+
+  --token-action: oklch(97% 0 none);
+  --token-action-pill: oklch(37.1% 0 none);
+
+  --token-invert: oklch(42.1% 0.095 57.708 / 0.4);
+  --token-invert-fg: oklch(87.9% 0.169 91.605);
+
+  --token-remove: oklch(39.6% 0.141 25.723 / 0.4);
+  --token-remove-fg: oklch(80.8% 0.114 19.571);
+
+  --token-selection: oklch(62.3% 0.214 259.815 / 0.3);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
