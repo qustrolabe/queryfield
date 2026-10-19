@@ -105,6 +105,18 @@ const rowClassName = (suggestion: Suggestion, active: boolean): string => {
   return active ? `${ROW_BASE} bg-muted` : `${ROW_BASE} hover:bg-muted`;
 };
 
+/*
+ * Comment styling per row kind. Action rows paint their own foreground
+ * (`text-token-invert-fg` / `text-token-remove-fg`); forcing the muted colour
+ * on top of them made the text vanish into automata's terracotta remove row
+ * (about 1.1:1). Inheriting keeps it readable while the smaller size still
+ * reads as secondary.
+ */
+const DEFAULT_COMMENT_CLASS =
+  "ml-auto shrink-0 pl-2 text-xs whitespace-nowrap text-muted-foreground";
+
+const ACTION_COMMENT_CLASS = "ml-auto shrink-0 pl-2 text-xs whitespace-nowrap";
+
 const DefaultSuggestionContent = (
   { suggestion, capsule }: { suggestion: Suggestion; capsule: string },
 ) => (
@@ -118,7 +130,11 @@ const DefaultSuggestionContent = (
     )}
     <span className="truncate font-mono text-sm">{suggestion.label}</span>
     {suggestion.comment && (
-      <span className="ml-auto shrink-0 pl-2 text-xs whitespace-nowrap text-muted-foreground">
+      <span
+        className={
+          suggestion.action ? ACTION_COMMENT_CLASS : DEFAULT_COMMENT_CLASS
+        }
+      >
         {suggestion.comment}
       </span>
     )}
