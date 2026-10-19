@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { cycleToken, tokenState } from "../src/editing.ts";
-import { suggest } from "../src/suggest.ts";
+import { rankTagMatches, suggest, tagMatchRank } from "../src/suggest.ts";
 import type { FolderSuggestNode } from "../src/folders.ts";
 
 const FOLDER_TREE: FolderSuggestNode[] = [
@@ -289,6 +289,87 @@ describe("suggest — token actions (caret inside existing token)", () => {
       completions.find((c) => c.replaceFrom === 0 && c.replaceTo === caret)
         ?.insert,
     ).not.toBe('tag:"new"'.slice(0, caret));
+  });
+});
+
+describe("suggest — tag match tiers", () => {
+  const AI_TAGS = {
+    "ai/imagegen": 40,
+    "ai/image-to-vector": 12,
+    "gamedev/image": 2,
+    "my-imagegen": 3,
+    image: 5,
+    mage: 1,
+  };
+
+  const AI_DATA = { tags: AI_TAGS, folderTree: FOLDER_TREE };
+
+  const entries = Object.entries(AI_TAGS).map(([tag, count]) => ({ tag, count }));
+
+  test("ranks are exact -> prefix -> segment -> substring -> fuzzy", () => {
+    expect(tagMatchRank("ai/imagegen", "ai/imagegen")).toBe(0);
+    expect(tagMatchRank("ai/imagegen", "ai/")).toBe(1);
+    expect(tagMatchRank("ai/imagegen", "image")).toBe(2);
+    expect(tagMatchRank("my-imagegen", "image")).toBe(3);
+    expect(tagMatchRank("ai/imagegen", "mageg")).toBe(3);
+    expect(tagMatchRank("ai/imagegen", "aigen")).toBe(4);
+    expect(tagMatchRank("ai/imagegen", "zzz")).toBeNull();
+  });
+
+  test("tiers ignore casing but keep display casing", () => {
+    expect(tagMatchRank("ai/imagegen", "AI/IMAGE")).toBe(1);
+    expect(tagMatchRank("ai/imagegen", "AIGEN")).toBe(4);
+    expect(rankTagMatches(entries, "IMAGE")[0].tag).toBe("image");
+  });
+
+  test("rankTagMatches orders by tier, then by count", () => {
+    expect(rankTagMatches(entries, "image").map((e) => e.tag)).toEqual([
+      "image",
+      "ai/imagegen",
+      "ai/image-to-vector",
+      "gamedev/image",
+      "my-imagegen",
+    ]);
+  });
+
+  test("a bare segment still finds tags nested under a parent", () => {
+    const inserts = suggest("image", 5, AI_DATA).map((x) => x.insert);
+
+    expect(inserts).toContain('tag:"ai/imagegen"');
+    // the literal prefix match stays ahead of the segment hit
+    expect(inserts.indexOf('tag:"image"'))
+      .toBeLessThan(inserts.indexOf('tag:"ai/imagegen"'));
+  });
+
+  test("a fragment missing the leading character still finds the tag", () => {
+    expect(suggest("mageg", 5, AI_DATA).map((x) => x.insert))
+      .toContain('tag:"ai/imagegen"');
+  });
+
+  test("a gapped fragment still finds the tag by subsequence", () => {
+    expect(suggest("aigen", 5, AI_DATA).map((x) => x.insert))
+      .toContain('tag:"ai/imagegen"');
+  });
+
+  test("tag: values match past the parent segment", () => {
+    const query = "tag:image";
+
+    expect(suggest(query, query.length, AI_DATA).map((x) => x.insert))
+      .toContain('tag:"ai/imagegen"');
+  });
+
+  test("tag: values fall back to the fuzzy tier", () => {
+    const query = "tag:aigen";
+
+    expect(suggest(query, query.length, AI_DATA).map((x) => x.insert))
+      .toContain('tag:"ai/imagegen"');
+  });
+
+  test("typing the parent segment still lists every child", () => {
+    const inserts = suggest("ai/", 3, AI_DATA).map((x) => x.insert);
+
+    expect(inserts).toContain('tag:"ai/imagegen"');
+    expect(inserts).toContain('tag:"ai/image-to-vector"');
   });
 });
 

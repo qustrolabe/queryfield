@@ -19,6 +19,9 @@ import type { FilterToken, ParsedQuery } from "./types.ts";
  * - Typing a key prefix (`tag`, `-ur`) -> matching key suggestions.
  * - Typing a value after `key:` -> real-data + premade template suggestions,
  *   each carrying a category capsule and grey explanatory comment.
+ *
+ * Tag values are matched in tiers (see `tagMatchRank`), so a query that only
+ * lands on one path segment — `image` for `ai/imagegen` — still finds the tag.
  */
 
 export interface SuggestData {
@@ -66,6 +69,76 @@ const NUMBER_TEMPLATES = (unit: string): { value: string; comment: string }[] =>
 ];
 
 const MAX_SUGGESTIONS = 12;
+
+/** Shortest query worth a fuzzy (subsequence) match; single letters are noise. */
+const MIN_FUZZY_LENGTH = 2;
+
+/** True when every character of `needle` occurs in `haystack`, in order. */
+const isSubsequence = (needle: string, haystack: string): boolean => {
+  let at = 0;
+
+  for (let i = 0; i < haystack.length && at < needle.length; i += 1) {
+    if (haystack[i] === needle[at]) at += 1;
+  }
+
+  return at === needle.length;
+};
+
+/**
+ * How well a tag matches the typed query. Lower is better; `null` = no match.
+ *
+ * Tiers, so closer hits always outrank fuzzier ones:
+ *   0 exact
+ *   1 whole-tag prefix — `ai/` lists every `ai/*` tag
+ *   2 path-segment prefix — `image` finds `ai/imagegen`
+ *   3 substring — the query appears anywhere in the tag
+ *   4 subsequence — the query's characters appear in order, gaps allowed
+ *
+ * `/` stays an ordinary character (flat tag model), so the segment tier is a
+ * refinement of substring matching rather than real hierarchy.
+ */
+export const tagMatchRank = (tag: string, query: string): number | null => {
+  const lower = tag.toLowerCase();
+  const q = query.toLowerCase();
+
+  if (lower === q) return 0;
+  if (lower.startsWith(q)) return 1;
+  if (lower.split("/").some((segment) => segment.startsWith(q))) return 2;
+  if (lower.includes(q)) return 3;
+  if (q.length >= MIN_FUZZY_LENGTH && isSubsequence(q, lower)) return 4;
+
+  return null;
+};
+
+/**
+ * Tags matching `query`, best first: match tier, then most-used, then name.
+ * Empty queries match everything, which keeps the "show all tags" behaviour.
+ */
+export const rankTagMatches = (
+  tags: Iterable<{ tag: string; count: number }>,
+  query: string,
+): Array<{ tag: string; count: number }> => {
+  const ranked: Array<{ tag: string; count: number; rank: number }> = [];
+
+  for (const entry of tags) {
+    const rank = tagMatchRank(entry.tag, query);
+
+    if (rank !== null) ranked.push({ ...entry, rank });
+  }
+
+  return ranked
+    .sort(
+      (a, b) =>
+        a.rank - b.rank ||
+        b.count - a.count ||
+        a.tag.localeCompare(b.tag),
+    )
+    .map(({ tag, count }) => ({ tag, count }));
+};
+
+/** Tag index entries as the matcher's input shape. */
+const tagEntries = (tags: SuggestData["tags"]) =>
+  Object.entries(tags).map(([tag, count]) => ({ tag, count }));
 
 /** Locate the raw fragment being typed right before the caret. */
 const activeFragment = (
@@ -171,12 +244,9 @@ const valueSuggestions = (
     const isFolderKey = key === "folder" || key === "folder_strict";
 
     if (key === "tag") {
-      Object.entries(data.tags)
-        .filter(([tag]) => tag.toLowerCase().startsWith(prefix))
-        .sort(([, a], [, b]) => b - a)
-        .forEach(([tag, count]) =>
-          push(tag, `${count} bookmarks`),
-        );
+      rankTagMatches(tagEntries(data.tags), prefix).forEach(({ tag, count }) =>
+        push(tag, `${count} bookmarks`),
+      );
     } else if (isFolderKey) {
       // Leading "/" anchors at the tree top; otherwise chains anchor
       // anywhere (or under another folder token's subtree).
@@ -298,17 +368,14 @@ const bareSuggestions = (
   // Matching keys first.
   out.push(...keySuggestions(frag, registry));
 
-  // Tags by count.
-  Object.entries(data.tags)
-    .filter(([tag]) => tag.toLowerCase().startsWith(prefix))
-    .sort(([, a], [, b]) => b - a)
-    .forEach(([tag, count]) => {
-      const text = `${neg}tag:"${tag}"`;
+  // Tags by match quality, then count.
+  rankTagMatches(tagEntries(data.tags), prefix).forEach(({ tag, count }) => {
+    const text = `${neg}tag:"${tag}"`;
 
-      if (!existing.has(`tag:${tag.toLowerCase()}`)) {
-        pushToken(text, "tag", `${count} bookmarks`);
-      }
-    });
+    if (!existing.has(`tag:${tag.toLowerCase()}`)) {
+      pushToken(text, "tag", `${count} bookmarks`);
+    }
+  });
 
   // Folders (anywhere in the tree).
   descendantNames(data.folderTree)
