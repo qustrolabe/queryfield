@@ -373,3 +373,16 @@ describe("suggest — tag match tiers", () => {
   });
 });
 
+describe("suggest — negated fragments", () => {
+  test("a negated fragment suggests the tag as well as the folder", () => {
+    const data = {
+      tags: { godot: 10 },
+      folderTree: [{ name: "godot", children: [] }],
+    };
+    const inserts = suggest("-godo", 5, data).map((x) => x.insert);
+
+    expect(inserts).toContain('-tag:"godot"');
+    expect(inserts).toContain('-folder:"godot"');
+  });
+});
+
