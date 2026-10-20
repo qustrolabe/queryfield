@@ -55,6 +55,26 @@ describe("applySuggestion", () => {
     expect(result).toBeNull();
   });
 
+  test("applies a host token action by splicing its insert", () => {
+    const query = 'folder:"Projects" tag:tech';
+    const [converted] = suggest(query, 8, DATA, undefined, {
+      tokenActions: () => [
+        {
+          id: "convert:folder_strict",
+          label: "Convert to folder_strict",
+          insert: 'folder_strict:"Projects"',
+        },
+      ],
+    });
+
+    const result = applySuggestion(query, converted!);
+
+    expect(result).toEqual({
+      query: 'folder_strict:"Projects" tag:tech',
+      caret: 'folder_strict:"Projects"'.length,
+    });
+  });
+
   test("the applied query re-parses to the expected token", () => {
     const query = "tech";
     const [suggestion] = suggest(query, 4, DATA);

@@ -14,8 +14,9 @@ import type { FilterToken, ParsedQuery } from "./types.ts";
  * Caret-aware suggestion engine.
  *
  * Modes (by input caret position):
- * - Over an existing token -> [Invert, Remove] actions first, then value
- *   completions for that token's partial value (e.g. tag:"new" -> new_notes).
+ * - Over an existing token -> token actions first (the built-in invert/remove
+ *   pair plus any rows the host adds), then value completions for that token's
+ *   partial value (e.g. tag:"new" -> new_notes).
  * - Typing a key prefix (`tag`, `-ur`) -> matching key suggestions.
  * - Typing a value after `key:` -> real-data + premade template suggestions,
  *   each carrying a category capsule and grey explanatory comment.
@@ -31,10 +32,22 @@ export interface SuggestData {
   folderTree: FolderSuggestNode[];
 }
 
+/** Row tints a token action can use; `action` is the neutral action colour. */
+export type TokenActionTone = "action" | "invert" | "remove";
+
 export interface Suggestion {
   type: "action" | "key" | "value";
-  /** For actions: what to do with the token under the caret. */
-  action?: "invert" | "remove";
+  /**
+   * For actions: what to do with the token under the caret. `invert` and
+   * `remove` are built in; any other id belongs to the host and must carry
+   * `insert`.
+   */
+  action?: string;
+  /**
+   * Row tint. The built-ins set theirs; host rows inherit it from
+   * `TokenAction.tone` and stay plain when it is absent.
+   */
+  tone?: TokenActionTone;
   /** Main display text. */
   label: string;
   /** Capsule text in front, e.g. "tag", "date". */
@@ -43,11 +56,62 @@ export interface Suggestion {
   comment?: string;
   /**
    * Replace query[replaceFrom..replaceTo] with `insert` on accept.
-   * Actions ignore this (they rewrite the query themselves).
+   * Built-in actions ignore this (they rewrite the query themselves).
    */
   replaceFrom: number;
   replaceTo: number;
   insert?: string;
+}
+
+/** What a host's token-action provider gets to look at. */
+export interface TokenActionContext {
+  /** Filter token the caret is inside. */
+  token: FilterToken;
+  /** Full query string. */
+  query: string;
+  /** Registry of this surface, for label/description lookups. */
+  registry: Registry;
+}
+
+/**
+ * One row of the token dropdown.
+ *
+ * `insert` replaces the covering token as a whole — quoting, negation and value
+ * are the host's business (`serializeToken` handles them). Rows that omit it
+ * must use a built-in `id` (`invert` / `remove`), which the package rewrites
+ * itself.
+ */
+export interface TokenAction {
+  /** `invert` / `remove` for the built-ins; any stable id for host rows. */
+  id: string;
+  label: string;
+  /** Capsule text; defaults to the token's key, like the built-ins. */
+  category?: string;
+  comment?: string;
+  /**
+   * Row tint. Built-ins pick theirs; `"action"` gives a host row the neutral
+   * action colour, and leaving it out keeps the plain row.
+   */
+  tone?: TokenActionTone;
+  insert?: string;
+}
+
+/**
+ * Returns the rows the dropdown should offer for the token under the caret.
+ *
+ * `defaults` is the built-in invert/remove pair, already labelled for the
+ * token's current polarity. Return it as-is, filter or reorder it, or append
+ * rows of your own — the returned list is exactly what the dropdown shows.
+ */
+export type TokenActionProvider = (
+  context: TokenActionContext,
+  defaults: TokenAction[],
+) => TokenAction[];
+
+/** Optional behaviour for `suggest`; nothing here is required. */
+export interface SuggestOptions {
+  /** Rows for the token dropdown; replaces the built-in list when supplied. */
+  tokenActions?: TokenActionProvider;
 }
 
 const DATE_TEMPLATES: { value: string; comment: string }[] = [
@@ -426,6 +490,49 @@ const keySuggestions = (frag: Fragment, registry: Registry): Suggestion[] => {
     }));
 };
 
+/** Built-in dropdown rows for the token under the caret. */
+export const defaultTokenActions = ({
+  token,
+}: TokenActionContext): TokenAction[] => [
+  {
+    id: "invert",
+    label: token.negated ? "Make positive" : "Make negative",
+    comment: token.negated
+      ? "include matching items"
+      : "exclude matching items",
+  },
+  {
+    id: "remove",
+    label: "Remove",
+    comment: "delete this filter from the query",
+  },
+];
+
+/** The built-in rows paint themselves; host rows opt in through `tone`. */
+const builtInTone = (id: string): TokenActionTone | undefined => {
+  if (id === "invert") return "invert";
+
+  if (id === "remove") return "remove";
+
+  return undefined;
+};
+
+/** Turn a token action into the row shape the list and `applySuggestion` use. */
+const actionSuggestion = (
+  action: TokenAction,
+  token: FilterToken,
+): Suggestion => ({
+  type: "action",
+  action: action.id,
+  tone: action.tone ?? builtInTone(action.id),
+  label: action.label,
+  category: action.category ?? token.key,
+  comment: action.comment,
+  replaceFrom: token.start,
+  replaceTo: token.end,
+  insert: action.insert,
+});
+
 /**
  * Compute suggestions for the given query and caret offset.
  */
@@ -434,6 +541,7 @@ export const suggest = (
   caret: number,
   data: SuggestData,
   registry: Registry = defaultRegistry,
+  options: SuggestOptions = {},
 ): Suggestion[] => {
   const parsed: ParsedQuery = parseQuery(query);
 
@@ -453,28 +561,11 @@ export const suggest = (
   );
 
   if (covering && covering.kind === "filter") {
-    const actions: Suggestion[] = [
-      {
-        type: "action",
-        action: "invert",
-        label: covering.negated ? "Make positive" : "Make negative",
-        category: covering.key,
-        comment: covering.negated
-          ? "include matching items"
-          : "exclude matching items",
-        replaceFrom: covering.start,
-        replaceTo: covering.end,
-      },
-      {
-        type: "action",
-        action: "remove",
-        label: "Remove",
-        category: covering.key,
-        comment: "delete this filter from the query",
-        replaceFrom: covering.start,
-        replaceTo: covering.end,
-      },
-    ];
+    const context: TokenActionContext = { token: covering, query, registry };
+    const defaults = defaultTokenActions(context);
+    const actions = (options.tokenActions?.(context, defaults) ?? defaults).map(
+      (action) => actionSuggestion(action, covering),
+    );
 
     // Existing key:value pairs — INCLUDING the token under the caret,
     // whose value is already offered explicitly as the "current value"

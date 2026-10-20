@@ -14,7 +14,8 @@ export interface AcceptResult {
  * Apply a suggestion to a query string.
  *
  * - `insert` suggestions splice `query[replaceFrom..replaceTo]` with `insert`
- *   and put the caret after it.
+ *   and put the caret after it. This covers value rows and host-defined token
+ *   actions.
  * - `action: "invert"` / `"remove"` rewrite the token under the caret and leave
  *   the caret at the end.
  *
@@ -24,6 +25,16 @@ export const applySuggestion = (
   query: string,
   suggestion: Suggestion,
 ): AcceptResult | null => {
+  if (suggestion.insert !== undefined) {
+    return {
+      query:
+        query.slice(0, suggestion.replaceFrom) +
+        suggestion.insert +
+        query.slice(suggestion.replaceTo),
+      caret: suggestion.replaceFrom + suggestion.insert.length,
+    };
+  }
+
   if (suggestion.type === "action") {
     if (suggestion.action === "invert") {
       const next = invertTokenAt(query, suggestion.replaceTo);
@@ -38,16 +49,6 @@ export const applySuggestion = (
     }
 
     return null;
-  }
-
-  if (suggestion.insert !== undefined) {
-    return {
-      query:
-        query.slice(0, suggestion.replaceFrom) +
-        suggestion.insert +
-        query.slice(suggestion.replaceTo),
-      caret: suggestion.replaceFrom + suggestion.insert.length,
-    };
   }
 
   return null;

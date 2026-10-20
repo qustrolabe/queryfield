@@ -27,7 +27,7 @@ import { parseQuery } from "./parser.ts";
 import { filterBookmarks, matchBookmark } from "./engine.ts";
 import { defaultRegistry, type Registry } from "./registry.ts";
 import { extractTags } from "./tags.ts";
-import type { SuggestData, Suggestion } from "./suggest.ts";
+import type { SuggestData, SuggestOptions, Suggestion } from "./suggest.ts";
 import { suggest } from "./suggest.ts";
 
 /** Build a MatchContext from a full item tree snapshot. */
@@ -93,7 +93,8 @@ export const suggestFor = (
   caret: number,
   data: SuggestData,
   registry: Registry = defaultRegistry,
-): Suggestion[] => suggest(query, caret, data, registry);
+  options: SuggestOptions = {},
+): Suggestion[] => suggest(query, caret, data, registry, options);
 
 /**
  * A bound engine — the recommended entry point for host apps. It closes over
@@ -112,10 +113,12 @@ export interface QueryEngine {
 
 export const createQueryEngine = (
   registry: Registry = defaultRegistry,
+  options: SuggestOptions = {},
 ): QueryEngine => ({
   parse: parseQuery,
   match: (parsed, item, ctx) => matchBookmark(parsed, item, ctx, registry),
   filter: (query, items, ctx) =>
     filterBookmarks(parseQuery(query), items, ctx, registry),
-  suggest: (query, caret, data) => suggest(query, caret, data, registry),
+  suggest: (query, caret, data) =>
+    suggest(query, caret, data, registry, options),
 });

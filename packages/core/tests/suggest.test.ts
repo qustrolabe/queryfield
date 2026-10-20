@@ -268,6 +268,55 @@ describe("suggest — token actions (caret inside existing token)", () => {
     expect(s[0].label).toBe("Make positive");
   });
 
+  test("host rows follow the built-ins and can replace the token", () => {
+    const query = 'folder:"Projects" tag:tech';
+    const s = suggest(query, 8, DATA, undefined, {
+      tokenActions: ({ token }, defaults) => [
+        ...defaults,
+        {
+          id: "convert:folder_strict",
+          label: "Convert to folder_strict",
+          category: "folder",
+          comment: "directly",
+          insert: `folder_strict:"${token.value}"`,
+        },
+      ],
+    });
+
+    expect(s.slice(0, 3).map((x) => x.action)).toEqual([
+      "invert",
+      "remove",
+      "convert:folder_strict",
+    ]);
+    expect(s[2]).toMatchObject({
+      type: "action",
+      label: "Convert to folder_strict",
+      category: "folder",
+      comment: "directly",
+      replaceFrom: 0,
+      replaceTo: 'folder:"Projects"'.length,
+      insert: 'folder_strict:"Projects"',
+    });
+  });
+
+  test("host rows can drop or reorder the built-ins", () => {
+    const s = suggest("tag:tech", 4, DATA, undefined, {
+      tokenActions: (_context, defaults) =>
+        defaults.filter((action) => action.id === "remove"),
+    });
+
+    expect(s[0].action).toBe("remove");
+    expect(s.some((x) => x.action === "invert")).toBe(false);
+  });
+
+  test("host rows default their capsule to the token key", () => {
+    const s = suggest("tag:tech", 4, DATA, undefined, {
+      tokenActions: () => [{ id: "x", label: "Do a thing", insert: "tag:x" }],
+    });
+
+    expect(s[0].category).toBe("tag");
+  });
+
   test("actions target exactly the covered token", () => {
     const query = "aaa tag:tech";
     const caret = 8;

@@ -1,6 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
 import { applySuggestion, suggest } from "@queryfield/core";
-import type { AcceptResult, Registry, SuggestData, Suggestion } from "@queryfield/core";
+import type {
+  AcceptResult,
+  Registry,
+  SuggestData,
+  Suggestion,
+  TokenActionProvider,
+} from "@queryfield/core";
 import { resolveKeyEvent } from "./keyboard.ts";
 import type { KeyEventLike, KeyOutcome } from "./keyboard.ts";
 
@@ -19,6 +25,8 @@ export interface UseQueryInputOptions {
   data: SuggestData;
   /** Filter-key registry; defaults to the bookmark preset. */
   registry?: Registry;
+  /** Rows for the token dropdown; defaults to the built-in invert/remove pair. */
+  tokenActions?: TokenActionProvider;
   disabled?: boolean;
 }
 
@@ -40,6 +48,7 @@ export const useQueryInput = ({
   query,
   data,
   registry,
+  tokenActions,
   disabled,
 }: UseQueryInputOptions): UseQueryInputResult => {
   const [caret, setCaret] = useState(0);
@@ -50,9 +59,18 @@ export const useQueryInput = ({
   const suggestions = useMemo(
     () =>
       focused && !dismissed && !disabled
-        ? suggest(query, caret, data, registry)
+        ? suggest(query, caret, data, registry, { tokenActions })
         : [],
-    [query, caret, data, registry, dismissed, focused, disabled],
+    [
+      query,
+      caret,
+      data,
+      registry,
+      tokenActions,
+      dismissed,
+      focused,
+      disabled,
+    ],
   );
 
   // Derived: keep the highlight within bounds instead of resetting via effect.

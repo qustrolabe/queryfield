@@ -7,6 +7,8 @@ import type {
   Registry,
   SuggestData,
   Suggestion,
+  TokenActionProvider,
+  TokenActionTone,
 } from "@queryfield/core";
 import { useQueryInput } from "./useQueryInput.ts";
 
@@ -90,14 +92,15 @@ const ROW_ACTIVE = "font-medium ring-1 ring-ring";
  * an interpolation (`text-token-invert-fg${…}`), which silently drops the
  * utility — the row keeps its background but loses its matching text colour.
  */
-const ROW_ACTION_CLASSES: Record<"invert" | "remove", string> = {
+const ROW_ACTION_CLASSES: Record<TokenActionTone, string> = {
+  action: "bg-token-action-pill text-token-action",
   invert: "bg-token-invert text-token-invert-fg",
   remove: "bg-token-remove text-token-remove-fg",
 };
 
 const rowClassName = (suggestion: Suggestion, active: boolean): string => {
-  if (suggestion.action === "invert" || suggestion.action === "remove") {
-    const base = `${ROW_BASE} ${ROW_ACTION_CLASSES[suggestion.action]}`;
+  if (suggestion.tone) {
+    const base = `${ROW_BASE} ${ROW_ACTION_CLASSES[suggestion.tone]}`;
 
     return active ? `${base} ${ROW_ACTIVE}` : base;
   }
@@ -106,11 +109,11 @@ const rowClassName = (suggestion: Suggestion, active: boolean): string => {
 };
 
 /*
- * Comment styling per row kind. Action rows paint their own foreground
- * (`text-token-invert-fg` / `text-token-remove-fg`); forcing the muted colour
- * on top of them made the text vanish into automata's terracotta remove row
- * (about 1.1:1). Inheriting keeps it readable while the smaller size still
- * reads as secondary.
+ * Comment styling per row kind. Tinted rows paint their own foreground
+ * (`text-token-invert-fg`, `text-token-remove-fg`, `text-token-action`);
+ * forcing the muted colour on top of them made the text vanish into automata's
+ * terracotta remove row (about 1.1:1). Inheriting keeps it readable while the
+ * smaller size still reads as secondary.
  */
 const DEFAULT_COMMENT_CLASS =
   "ml-auto shrink-0 pl-2 text-xs whitespace-nowrap text-muted-foreground";
@@ -132,7 +135,7 @@ const DefaultSuggestionContent = (
     {suggestion.comment && (
       <span
         className={
-          suggestion.action ? ACTION_COMMENT_CLASS : DEFAULT_COMMENT_CLASS
+          suggestion.tone ? ACTION_COMMENT_CLASS : DEFAULT_COMMENT_CLASS
         }
       >
         {suggestion.comment}
@@ -153,6 +156,8 @@ export interface QueryInputProps {
   data: SuggestData;
   /** Filter-key registry; defaults to the bookmark preset. */
   registry?: Registry;
+  /** Rows for the token dropdown; defaults to the built-in invert/remove pair. */
+  tokenActions?: TokenActionProvider;
   placeholder?: string;
   disabled?: boolean;
   autoFocus?: boolean;
@@ -173,6 +178,7 @@ export const QueryInput = ({
   onQueryChange,
   data,
   registry,
+  tokenActions,
   placeholder,
   disabled,
   autoFocus,
@@ -191,7 +197,7 @@ export const QueryInput = ({
     activeIndex,
     accept,
     handleKeyDown,
-  } = useQueryInput({ query, data, registry, disabled });
+  } = useQueryInput({ query, data, registry, tokenActions, disabled });
 
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
